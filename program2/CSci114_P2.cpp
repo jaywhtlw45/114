@@ -1,3 +1,14 @@
+// Jason Whitlow
+// Program2
+// CSCI 114
+// 9/20/2023
+
+// This program will read data from a file and write it to another file using a pipe.
+// To run the program use the following commands:
+
+// g++ -o a.out CSci114_P2.cpp
+// ./a.out
+
 #include <unistd.h>    // Symbolic Constants
 #include <sys/types.h> // Primitive System Data Types
 #include <errno.h>     // Errors
@@ -14,8 +25,8 @@ const int SIZE = 1024; // Buffer Size
 int main()
 {
     // Open Files
-    ifstream inFile("data1.txt", ios::in | ios::binary);
-    ofstream outFile("data2.txt", ios::out | ios::binary);
+    ifstream inFile("data.in", ios::in | ios::binary);
+    ofstream outFile("data.out", ios::out | ios::binary);
 
     if (!inFile.is_open())
     {
