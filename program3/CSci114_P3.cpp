@@ -1,12 +1,15 @@
 #include <iostream>
-#include <thread>
+#include <pthread.h>
 #include <vector>
 #include <fstream>
 #include <iomanip>
 #include <cstdlib>
+#include <stdlib.h>
 
 using namespace std;
 
+const int THREADS = 8;
+int ROWS, COLS;
 int M = 2, N = 3, K = 4;
 // there will be M*K number of threads
 
@@ -24,43 +27,37 @@ void files_to_matrices();
 
 void *multiply_row_column(void *arg)
 {
-    int sum = 0;
-    sum = *((int*)arg);
-    cout << "sum: " << sum << endl;
-    free(arg);
+    // Store a local instance of COLS and ROWS to avoid race condition
+    int cols = COLS;
+    int rows = ROWS;
+    
+    // Signal next thread to begin
+   // cout << "Thread " << cols * (rows + 1) << " multiplying" << endl;
+    printf("multiply_row_column %d\n", cols);
 }
 
 int main()
 {
-    pthread_t th[1];
+    pthread_t th[THREADS];
     files_to_matrices();
 
-    int *a = (int *)malloc(2 * sizeof(int));
-    *a = 1;
-    *(a + 1) = 2;
-    cout << "we made it" << endl;
-    pthread_create(th, NULL, &multiply_row_column, &a);
+    for (ROWS = 0; ROWS < M; ROWS++)
+    {
+        for (COLS = 0; COLS < K; COLS++)
+        {
+            printf("creating thread %d\n", COLS + (ROWS*K));
+            pthread_create(th + COLS *(ROWS+1), NULL, multiply_row_column, NULL);
+            // add signal here
+        }
+    }
 
-    // for (int j = 0; j < M; j++)
-    // {
-    // for (int i = 0; i < K; i++)
-    //{
-    // int *a = (int *)malloc(2 * sizeof(int));
-    // *a = 1;
-    // *(a+1)= 2;
-    // cout << "we made it" << endl;
-    // pthread_create(th + i, NULL, &multiply_row_column, &a);
-    //}
-    //}
+    for (int i = 0; i < THREADS; i++)
+    {
+        printf("Joining thread %d\n", i);
+        if (pthread_join(th[i], NULL) != 0)
+            return 1;
+    }
 
-    // for (int j = 0; j < M * K; j++)
-    // {
-    //     if (pthread_join(th[j], NULL) != 0)
-    //         perror("Failed to join thread");
-    // }
-    // Copy A.txt and B.txt to matrices
-
-    pthread_join(th[0], NULL);
     return 0;
 }
 
