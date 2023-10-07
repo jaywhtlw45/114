@@ -1,77 +1,132 @@
+// Jason Whitlow
+// CSCI 114 Program 3
+// 10/7/2023
+
+// Program Explanation:
+// This program accepts a matrix from A.txt and B.txt.
+// The program then multiplies the two matrices using threads and outputs the result to console.
+
+// Notes about Program:
+// 1. There are multiple approaches to take when multiplying matrices using threads.
+//    The approach this program takes is to create a thread for each cell in the resulting matrix, matrix C.
+// 2. Each thread can only access the cell it is responsible for which means there is NO NEED for a lock on thread.
+//    A lock is still used to demonstrate how to use a lock in a thread.
+// 3. For simplicity, the program first loads the matrices from the files into vectors.
+//    This is less efficient than loading the matrices directly into the resulting matrix, matrix C.
+
+// Run Program:
+// g++ -o a.out CSci114_P3.cpp;
+// ./a.out M N K; where M, N, and K are the dimensions of the matrices A and B.
+
 #include <iostream>
-#include <pthread.h>
+#include <thread>
 #include <vector>
 #include <fstream>
 #include <iomanip>
 #include <cstdlib>
 #include <stdlib.h>
+#include <mutex>
 
 using namespace std;
 
-const int THREADS = 8;
-int ROWS, COLS;
-int M = 2, N = 3, K = 4;
-// there will be M*K number of threads
+// Matrices A, B, C
+vector<vector<int>> A, B, C;
 
-vector<vector<int>> matrix_a, matrix_b;
+// M = (rows of A), N = (cols of A) = (rows of B), K = (cols of B)
+int M, N, K; // i, j, k respectively
+int threads = M * K;
+mutex mt;
 
+// Read files from A.txt and B.txt and store in matrix A and B
+int files_to_matrices();
+
+void init_matrix_C();
 void print_matrices();
-void files_to_matrices();
 
-// row, col
-// int sum = 0;
-// for (int i = 0; i < N; i++)
-// {
-// sum += matrix_a[row][0] * matrix_b[i][col];
-// }
-
-void *multiply_row_column(void *arg)
+// Multiply cell i,k in matrix C
+void multiply_cell(int i, int k)
 {
-    // Store a local instance of COLS and ROWS to avoid race condition
-    int cols = COLS;
-    int rows = ROWS;
-    
-    // Signal next thread to begin
-   // cout << "Thread " << cols * (rows + 1) << " multiplying" << endl;
-    printf("multiply_row_column %d\n", cols);
+    for (int j = 0; j < N; j++)
+    {
+        mt.lock();
+        C[i][k] += A[i][j] * B[j][k];
+        mt.unlock();
+    }
 }
 
-int main()
+int main(int argc, char **argv)
 {
-    pthread_t th[THREADS];
-    files_to_matrices();
-
-    for (ROWS = 0; ROWS < M; ROWS++)
+    // Accept command line arguments
+    if (argc < 4)
     {
-        for (COLS = 0; COLS < K; COLS++)
+        cout << "Insufficient arguments to run" << endl;
+        exit(1);
+    }
+    M = atoi(argv[1]);
+    N = atoi(argv[2]);
+    K = atoi(argv[3]);
+
+    // Copy files to matrices A and B
+    if (files_to_matrices() == -1)
+    {
+        cout << "Error reading files" << endl;
+        exit(1);
+    }
+
+    // Initialize Matrix C to 0
+    init_matrix_C();
+
+    // Create thread array
+    thread th[M][K];
+
+    // Start threads
+    for (int i = 0; i < M; i++)
+    {
+        for (int k = 0; k < K; k++)
         {
-            printf("creating thread %d\n", COLS + (ROWS*K));
-            pthread_create(th + COLS *(ROWS+1), NULL, multiply_row_column, NULL);
-            // add signal here
+            th[i][k] = thread(multiply_cell, i, k);
         }
     }
 
-    for (int i = 0; i < THREADS; i++)
+    // Join threads
+    for (int i = 0; i < M; i++)
     {
-        printf("Joining thread %d\n", i);
-        if (pthread_join(th[i], NULL) != 0)
-            return 1;
+        for (int k = 0; k < K; k++)
+        {
+            th[i][k].join();
+        }
     }
+
+    cout << endl;
+    print_matrices();
 
     return 0;
 }
 
-void files_to_matrices()
+void init_matrix_C()
+{
+    for (int j = 0; j < M; j++)
+    {
+        vector<int> row;
+        for (int i = 0; i < K; i++)
+        {
+            row.push_back(0);
+        }
+        C.push_back(row);
+    }
+}
+
+int files_to_matrices()
 {
     ifstream file_a;
     ifstream file_b;
 
-    // Copy file A to Matrix
+    // Copy file A to Matrix A
     file_a.open("./A.txt");
     if (!file_a.is_open())
     {
-        cout << "Error opening matrix a!" << endl;
-        return;
+        cout << "Error opening matrix A!" << endl;
+        return -1;
     }
     int num;
     for (int j = 0; j < M; j++)
@@ -82,18 +137,17 @@ void files_to_matrices()
             file_a >> num;
             row.push_back(num);
         }
-        matrix_a.push_back(row);
+        A.push_back(row);
     }
     file_a.close();
-    cout << "Finished copying matrix a" << endl;
 
-    // Copy file B to Matrix
+    // Copy file B to Matrix B
     file_b.open("./B.txt");
     if (!file_b.is_open())
     {
-        cout << "Error opening matrix b!" << endl;
+        cout << "Error opening matrix B!" << endl;
         file_a.close();
-        return;
+        return -1;
     }
     for (int j = 0; j < N; j++)
     {
@@ -103,35 +157,42 @@ void files_to_matrices()
             file_b >> num;
             row.push_back(num);
         }
-        matrix_b.push_back(row);
+        B.push_back(row);
     }
     file_b.close();
-    cout << "Finished copying matrix b" << endl
-         << endl;
 
-    return;
+    return 0;
 }
 
 void print_matrices()
 {
     cout << "Matrix A " << endl;
-    for (int j = 0; j < M; j++)
+    for (int i = 0; i < M; i++)
     {
-        for (int i = 0; i < N; i++)
+        for (int j = 0; j < N; j++)
         {
-            cout << setw(4) << matrix_a[j][i];
+            cout << setw(4) << A[i][j];
         }
         cout << endl;
     }
     cout << "\nMatrix B " << endl;
     for (int j = 0; j < N; j++)
     {
-        for (int i = 0; i < K; i++)
+        for (int k = 0; k < K; k++)
         {
-            cout << setw(4) << matrix_b[j][i];
+            cout << setw(4) << B[j][k];
         }
         cout << endl;
     }
 
+    cout << "\nMatrix C " << endl;
+    for (int i = 0; i < M; i++)
+    {
+        for (int k = 0; k < K; k++)
+        {
+            cout << setw(4) << C[i][k];
+        }
+        cout << endl;
+    }
     cout << endl;
 }
