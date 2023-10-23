@@ -6,7 +6,7 @@
     int x = 2;
 
 // file handlers are duplicated for processes, not for threads
-int main(int argc, char *argv[]) {\
+int main(int argc, char *argv[]) {
 
    int pid = fork();
    if (pid ==-1){
