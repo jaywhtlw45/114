@@ -25,5 +25,50 @@ int main()
     Memory memory;
     memory.print();
 
+    cout << endl;
+    memory.allocate(500);
+    memory.print();
+
+    cout << endl;
+    memory.allocate(800);
+    memory.print();
+
+    cout << endl;
+    memory.allocate(500);
+     memory.print();
+
+    cout << endl;
+    memory.allocate(500);
+    memory.print();
+
+    cout << endl;
+    memory.allocate(700);
+    memory.print();
+
+    cout << endl;
+    memory.allocate(200);
+    memory.print();
+
+    cout << endl;
+    memory.allocate(500);
+    memory.print();
+
+    cout << endl;
+
+    int block = memory.allocate(500);
+    memory.print();
+
+    memory.deallocate(block, 500);
+    memory.print();
+
+
+    // !test memory.h!!!!!
+
+    // for (size_t i = 0; i < 20; i++)
+    // {
+    //     cout << "block " << memory.allocate(1024) << endl;
+    //     memory.print();
+    // }
+
     return 0;
 }

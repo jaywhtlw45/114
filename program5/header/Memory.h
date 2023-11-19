@@ -13,6 +13,7 @@
 #define Memory_H
 
 #include <iostream>
+#include <cstdlib>
 
 using namespace std;
 
@@ -31,10 +32,14 @@ private:
     int memory_blocks = 10; // number of memory blocks
     int bytes = 1024;       // bytes per memory block
 
+    void insert(Node *node); // inserts a node into the list
+
 public:
     Memory();
-    void insert(int request_id, int block_id, int mem_size);
-    bool remove(int request_id);
+
+    int allocate(int mem_size);
+    bool deallocate(int block_id, int mem_size);
+
     void print();
 };
 
@@ -64,84 +69,128 @@ Memory::Memory()
     cur->next = nullptr;
 }
 
-// void Memory::insert(int request_id, int block_id, int mem_size)
-// {
-//     Node *new_node = new Node;
-//     new_node-> = request_id;
-//     new_node->block_id = block_id;
-//     new_node->mem_size = mem_size;
+// allocates memory to a memory block. returns the memory block id.
+// if memory cannot fit the allocation request, return -1.
+int Memory::allocate(int mem_size)
+{
+    if (mem_size > bytes)
+    {
+        cout << "Cannot assign more than " << bytes << " bytes" << endl;
+        return -1;
+    }
 
-//     // insert at head
-//     if (!head)
-//     {
-//         head = new_node;
-//         head->next = nullptr;
-//     }
-//     else
-//     {
-//         // find the last node
-//         Node *cur = head;
-//         while (cur->next)
-//         {
-//             cur = cur->next;
-//         }
+    Node *cur = head;
+    Node *prev = nullptr;
 
-//         // add a node
-//         cur->next = new_node;
-//         new_node->next = nullptr;
-//     }
-//     size++;
-// }
+    // find a memory block for allocation
+    while (cur != nullptr && cur->available_memory < mem_size)
+    {
+        prev = cur;
+        cur = cur->next;
+    }
 
-// bool Memory::remove(int request_id)
-// {
-//     // no nodes in list
-//     if (!head)
-//     {
-//         cout << "Allocated List is empty" << endl;
-//         return false;
-//     }
+    // all memory blocks are too small
+    if (cur == nullptr)
+    {
+        cout << "Request does not fit" << endl;
+        return -1;
+    }
 
-//     Node *cur = head;
-//     Node *prev = nullptr;
+    // allocate memory
+    cur->available_memory -= mem_size;
 
-//     // delete head node
-//     if (head->request_id == request_id)
-//     {
-//         head = head->next;
-//         size--;
-//         delete cur;
-//         return true;
-//     }
+    // sort list if not in ascending order
+    if (prev != nullptr && cur->available_memory < prev->available_memory)
+    {
+        // remove cur from list
+        prev->next = cur->next;
 
-//     // find the request
-//     prev = cur;
-//     cur = cur->next;
-//     while (cur != NULL && cur->request_id != request_id)
-//     {
-//         prev = cur;
-//         cur = cur->next;
-//     }
+        // insert cur back into list
+        insert(cur);
+    }
 
-//     // request was not found
-//     if (!cur)
-//     {
-//         cout << "Request ID does not exist" << endl;
-//         return false;
-//     }
+    return cur->block_id;
+}
 
-//     // delete the request
-//     prev->next = cur->next;
-//     delete cur;
-//     size--;
-//     return true;
-// }
+void Memory::insert(Node* node)
+{
+    Node* cur = head;
+    Node* prev = nullptr;
+
+    while (cur != nullptr && cur->available_memory < node->available_memory)
+    {
+        prev = cur;
+        cur = cur->next;
+    }
+
+    // head node
+    if (prev == nullptr)
+    {
+        head = node;
+        node->next = cur;
+    } else 
+    {
+        prev->next = node;
+        node->next = cur;
+    }
+}
+
+bool Memory::deallocate(int block_id, int mem_size)
+{
+    Node* prev = nullptr;
+    Node* cur = head;
+
+    // find the memory block
+    while(cur->block_id != block_id)
+    {
+        prev = cur;
+        cur = cur->next;
+    }
+
+    if (cur == nullptr)
+    {
+        cerr << "Error in Memory.h" << endl;
+        exit(1);
+    }
+
+    // check if deallocation is valid
+    if (cur->available_memory + mem_size > bytes)
+    {
+        cout << "block " << cur->block_id << " has " << cur->available_memory << " bytes unallocated" << endl;
+        cout << "cannot deallocate any more bytes" << endl;
+        return -1;
+    }
+
+    // deallocate memory
+    cur->available_memory += mem_size;
+
+    // head
+    if ((cur == head) && (cur->next != nullptr) && (cur->available_memory > cur->available_memory))
+    {
+        head = head->next;
+        cur->next = head->next;
+        head->next = cur;
+
+        prev = head;
+    }
+
+    // sort list
+    while(cur->next != nullptr && cur->available_memory > cur->next->available_memory)
+    {
+        prev->next = cur->next;
+        prev = prev->next;
+
+        cur = prev->next; 
+        prev->next = cur;
+    }
+    return 1;
+}
 
 void Memory::print()
 {
     if (!head)
     {
-        cout << "Allocated List is empty" << endl;
+        cout << "Memory List is empty" << endl;
     }
 
     Node *cur = head;
