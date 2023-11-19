@@ -30,7 +30,7 @@ public:
     Allocated();
     void insert(int request_id, int block_id, int mem_size);
     bool remove(int request_id);
-    // Node *search(int request_id);
+    int get_mem_size(int request_id, int &block_id, int &mem_size);
     void print();
 };
 
@@ -39,6 +39,25 @@ Allocated::Allocated()
     head = NULL;
     size = 0;
 }
+
+int Allocated::get_mem_size(int request_id, int &block_id, int &mem_size){
+    Node* cur = head;
+    while (cur != nullptr && cur->request_id != request_id)
+    {
+        cur = cur->next;
+    }
+
+    if (cur == nullptr)
+    {
+        cout << "block id does not exist" << endl;
+        return -1; 
+    }
+
+    
+    block_id = cur->block_id;
+    mem_size = cur->mem_size;
+}
+
 
 void Allocated::insert(int request_id, int block_id, int mem_size)
 {
@@ -120,12 +139,14 @@ void Allocated::print()
         cout << "Allocated List is empty" << endl;
     }
 
+    cout << "allocation list" << endl;
     Node *temp = head;
     while (temp != nullptr)
     {
         cout << temp->request_id << " " << temp->block_id << " " << temp->mem_size << endl;
         temp = temp->next;
     }
+
 }
 
 #endif

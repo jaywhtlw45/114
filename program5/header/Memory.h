@@ -38,7 +38,7 @@ public:
     Memory();
 
     int allocate(int mem_size);
-    bool deallocate(int block_id, int mem_size);
+    int release(int block_id, int mem_size);
 
     void print();
 };
@@ -135,7 +135,7 @@ void Memory::insert(Node* node)
     }
 }
 
-bool Memory::deallocate(int block_id, int mem_size)
+int Memory::release(int block_id, int mem_size)
 {
     Node* prev = nullptr;
     Node* cur = head;
@@ -153,19 +153,19 @@ bool Memory::deallocate(int block_id, int mem_size)
         exit(1);
     }
 
-    // check if deallocation is valid
+    // error
     if (cur->available_memory + mem_size > bytes)
     {
         cout << "block " << cur->block_id << " has " << cur->available_memory << " bytes unallocated" << endl;
-        cout << "cannot deallocate any more bytes" << endl;
+        cout << "cannot release any more bytes" << endl;
         return -1;
     }
 
-    // deallocate memory
+    // release memory
     cur->available_memory += mem_size;
 
-    // head
-    if ((cur == head) && (cur->next != nullptr) && (cur->available_memory > cur->available_memory))
+    // current equals head, and ther is more than one node in list
+    if ((cur == head) && (cur->next != nullptr) && (cur->available_memory > cur->next->available_memory))
     {
         head = head->next;
         cur->next = head->next;
@@ -173,15 +173,18 @@ bool Memory::deallocate(int block_id, int mem_size)
 
         prev = head;
     }
+    print();
 
     // sort list
     while(cur->next != nullptr && cur->available_memory > cur->next->available_memory)
     {
+        cout << "here" << cur->next->block_id<< endl;
         prev->next = cur->next;
         prev = prev->next;
 
-        cur = prev->next; 
+        cur->next = prev->next; 
         prev->next = cur;
+        print();
     }
     return 1;
 }
@@ -194,11 +197,14 @@ void Memory::print()
     }
 
     Node *cur = head;
+
+    cout << "memory list: " << endl;
     while (cur != nullptr)
     {
         cout << cur->block_id << " " << cur->available_memory << endl;
         cur = cur->next;
     }
+
 }
 
 #endif

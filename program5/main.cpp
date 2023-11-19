@@ -8,67 +8,77 @@
 #include "header/Memory.h"
 
 #include <iostream>
+#include <fstream>
 
 using namespace std;
 
+//! NOTE TO SELF!!!!!!!!!!!!!!!! OUTPUT TO A FILE!!!!!!!!!!!!!!!!!!!!!!!!!
 int main()
 {
-    int request_id = 1;
-    int block_id = 1;
-    int mem_size = 500;
+    // open file
+    ifstream in_file;
+    in_file.open("./requests-1.txt");
 
-    Allocated allocated;
-    allocated.insert(request_id, block_id, mem_size);
-    allocated.insert(request_id + 1, block_id, mem_size);
-    allocated.insert(request_id + 2, block_id, mem_size);
+    char type; // A - allocate, R - release
+    int request_id;
+    int block_id;
+    int mem_size;
 
+    Allocated alloc;
     Memory memory;
-    memory.print();
 
-    cout << endl;
-    memory.allocate(500);
-    memory.print();
+    // Process all requests
+    while (in_file >> type)
+    {
+        // allocation
+        if (type == 'A')
+        {
+            in_file >> request_id >> mem_size;
+            // cout << "request" << endl;
+            // cout << type << " " << request_id << " " << mem_size << endl;
 
-    cout << endl;
-    memory.allocate(800);
-    memory.print();
+            // find an avialable memory block and allocate memory
+            block_id = memory.allocate(mem_size);
+            // memory.print();
 
-    cout << endl;
-    memory.allocate(500);
-     memory.print();
+            // add the memory allocation to alloc
+            alloc.insert(request_id, block_id, mem_size);
+            // alloc.print();
 
-    cout << endl;
-    memory.allocate(500);
-    memory.print();
+            cout << mem_size << " bytes allocated at block " << block_id << " for request " << request_id << endl;
+            cout << endl;
+        }
+        // release
+        else if (type == 'R')
+        {
+            in_file >> request_id;
+            // cout << "request" << endl;
+            //  cout << type << " " << request_id << endl
+            //      << endl;
 
-    cout << endl;
-    memory.allocate(700);
-    memory.print();
+            // get mem_size from allocated list
+            alloc.get_mem_size(request_id, block_id, mem_size);
 
-    cout << endl;
-    memory.allocate(200);
-    memory.print();
+            // remove request from allocated
+            alloc.remove(request_id);
+            // alloc.print();
 
-    cout << endl;
-    memory.allocate(500);
-    memory.print();
+            // release memory
+            memory.release(block_id, mem_size);
+            // memory.print();
 
-    cout << endl;
+            cout << mem_size << " bytes returned to block " << block_id << " for request " << request_id << endl;
+            cout << endl;
+        }
+        // error
+        else
+        {
+            cout << "cout type does not exist" << endl;
+            return 1;
+        }
+    }
 
-    int block = memory.allocate(500);
-    memory.print();
-
-    memory.deallocate(block, 500);
-    memory.print();
-
-
-    // !test memory.h!!!!!
-
-    // for (size_t i = 0; i < 20; i++)
-    // {
-    //     cout << "block " << memory.allocate(1024) << endl;
-    //     memory.print();
-    // }
+    in_file.close();
 
     return 0;
 }
